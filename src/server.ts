@@ -9,6 +9,7 @@ import commandsRouter from "./routes/commands";
 import suggestRouter from "./routes/suggest";
 import extensionsRouter from "./routes/extensions";
 import settingsAuthRouter from "./routes/settings-auth";
+import proxyRouter from "./routes/proxy";
 
 const app = new Hono();
 
@@ -23,6 +24,7 @@ app.route("/", commandsRouter);
 app.route("/", suggestRouter);
 app.route("/", extensionsRouter);
 app.route("/", settingsAuthRouter);
+app.route("/", proxyRouter);
 
 const port = Number(process.env.DEGOOG_PORT) || 4444;
 

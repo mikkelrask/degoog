@@ -17,10 +17,15 @@ export const buildSearchUrl = (query, engines, type, page) => {
   return `/api/search?${params.toString()}`;
 };
 
+export const proxyImageUrl = (url) => {
+  if (!url) return "";
+  return `/api/proxy/image?url=${encodeURIComponent(url)}`;
+};
+
 export const faviconUrl = (url) => {
   try {
     const hostname = new URL(url).hostname;
-    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+    return proxyImageUrl(`https://www.google.com/s2/favicons?domain=${hostname}&sz=32`);
   } catch {
     return "";
   }

@@ -7,7 +7,8 @@ export const speedtestCommand: BangCommand = {
   async execute(): Promise<CommandResult> {
     return {
       title: "Speed Test",
-      html: `__RUN_SPEEDTEST__`,
+      html: "",
+      action: "run_speedtest",
     };
   },
 };

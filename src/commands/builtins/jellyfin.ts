@@ -69,9 +69,10 @@ export const jellyfinCommand: BangCommand = {
       const perPage = 25;
       const startIndex = (page - 1) * perPage;
 
+      const authHeaders = { "X-Emby-Token": apiKey };
       const [hintsRes, peopleRes] = await Promise.all([
-        fetch(`${jellyfinUrl}/Search/Hints?searchTerm=${encodeURIComponent(term)}&api_key=${apiKey}&Limit=${perPage}&StartIndex=${startIndex}&IncludeItemTypes=Movie,Series,Episode,Audio,MusicAlbum,MusicArtist`),
-        fetch(`${jellyfinUrl}/Persons?searchTerm=${encodeURIComponent(term)}&api_key=${apiKey}&Limit=5&Fields=Overview,PrimaryImageAspectRatio`),
+        fetch(`${jellyfinUrl}/Search/Hints?searchTerm=${encodeURIComponent(term)}&Limit=${perPage}&StartIndex=${startIndex}&IncludeItemTypes=Movie,Series,Episode,Audio,MusicAlbum,MusicArtist`, { headers: authHeaders }),
+        fetch(`${jellyfinUrl}/Persons?searchTerm=${encodeURIComponent(term)}&Limit=5&Fields=Overview,PrimaryImageAspectRatio`, { headers: authHeaders }),
       ]);
       const hintsData = await hintsRes.json() as { SearchHints?: Record<string, unknown>[]; TotalRecordCount?: number };
       const peopleData = await peopleRes.json() as { Items?: Record<string, unknown>[] };
@@ -82,7 +83,8 @@ export const jellyfinCommand: BangCommand = {
       let personItems: Record<string, unknown>[] = [];
       if (personIds.length > 0) {
         const personItemsRes = await fetch(
-          `${jellyfinUrl}/Items?PersonIds=${personIds.join(",")}&api_key=${apiKey}&Recursive=true&Limit=30&Fields=Overview,People&IncludeItemTypes=Movie,Series`,
+          `${jellyfinUrl}/Items?PersonIds=${personIds.join(",")}&Recursive=true&Limit=30&Fields=Overview,People&IncludeItemTypes=Movie,Series`,
+          { headers: authHeaders },
         );
         const personItemsData = await personItemsRes.json() as { Items?: Record<string, unknown>[] };
         personItems = personItemsData.Items || [];
@@ -142,8 +144,9 @@ export const jellyfinCommand: BangCommand = {
           const imageTags = item["ImageTags"] as Record<string, unknown> | undefined;
           const hasThumb = !!imageTags?.["Primary"];
           const favicon = `<img class="result-favicon" src="${JELLYFIN_LOGO}" alt="">`;
+          const thumbSrc = `/api/proxy/image?auth_id=${JELLYFIN_ID}&url=${encodeURIComponent(`${jellyfinUrl}/Items/${item["Id"]}/Images/Primary?maxHeight=120`)}`;
           const thumbBlock = hasThumb
-            ? `<div class="result-thumbnail-wrap"><img class="result-thumbnail-img" src="${jellyfinUrl}/Items/${item["Id"]}/Images/Primary?maxHeight=120&api_key=${apiKey}" alt=""></div>`
+            ? `<div class="result-thumbnail-wrap"><img class="result-thumbnail-img" src="${escHtml(thumbSrc)}" alt=""></div>`
             : "";
           return `<div class="result-item"><div class="result-item-inner"><div class="result-body"><div class="result-url-row">${favicon}<cite class="result-cite">${escHtml(jellyfinUrl)}</cite></div><a class="result-title" href="${escHtml(itemUrl)}" target="_blank">${name}${year}</a><p class="result-snippet">${overview}</p><div class="result-engines">${typeBadge}${jellyfinTag}${personInfo}</div></div>${thumbBlock}</div></div>`;
         })

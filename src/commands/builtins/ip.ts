@@ -10,7 +10,8 @@ export const ipCommand: BangCommand = {
     if (!ip || ip === "127.0.0.1" || ip === "::1" || ip === "localhost" || /^(10|192\.168|172\.(1[6-9]|2\d|3[01]))\./.test(ip)) {
       return {
         title: "IP Lookup",
-        html: `__DETECT_CLIENT_IP__`,
+        html: "",
+        action: "detect_client_ip",
       };
     }
     try {

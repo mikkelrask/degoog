@@ -5,6 +5,7 @@ import type {
   ExtensionMeta,
 } from "../types";
 import { getSettings, maskSecrets } from "../plugin-settings";
+import { debug } from "../logger";
 import { GoogleEngine } from "./google";
 import { DuckDuckGoEngine } from "./duckduckgo";
 import { BingEngine } from "./bing";
@@ -347,7 +348,11 @@ export async function initEngines(): Promise<void> {
           searchType,
           instance,
         });
-      } catch {}
+      } catch (err) {
+        debug("engines", `Failed to load plugin engine: ${file}`, err);
+      }
     }
-  } catch {}
+  } catch (err) {
+    debug("engines", `Failed to read engine plugin directory`, err);
+  }
 }

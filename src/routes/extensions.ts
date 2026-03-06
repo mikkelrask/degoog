@@ -60,8 +60,16 @@ router.post("/api/extensions/:id/settings", async (c) => {
     return c.json({ error: "Extension not found" }, 404);
   }
 
+  const schemaKeys = new Set(ext.settingsSchema.map((f) => f.key));
+  const filtered: Record<string, string> = {};
+  for (const [key, value] of Object.entries(body)) {
+    if (schemaKeys.has(key) && typeof value === "string") {
+      filtered[key] = value;
+    }
+  }
+
   const existing = await getSettings(id);
-  const merged = mergeSecrets(body, existing, ext.settingsSchema);
+  const merged = mergeSecrets(filtered, existing, ext.settingsSchema);
   await setSettings(id, merged);
 
   const engineInstance = getEngineMap()[id];

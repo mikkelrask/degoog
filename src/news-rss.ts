@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { SearchResult } from "./types";
+import { debug } from "./logger";
 import { getSettings, setSettings } from "./plugin-settings";
 
 const NEWS_RSS_SETTINGS_ID = "news-rss";
@@ -43,6 +44,7 @@ export interface RssItem {
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const CONCURRENCY = 5;
 const MAX_ITEMS_PER_FEED = 50;
+const MAX_CACHE_ENTRIES = 100;
 
 const cache = new Map<
   string,
@@ -170,9 +172,21 @@ async function fetchFeed(
       feedTitle: parsed.feedTitle,
       fetchedAt: Date.now(),
     });
+    if (cache.size > MAX_CACHE_ENTRIES) {
+      let oldest: string | null = null;
+      let oldestTime = Infinity;
+      for (const [key, val] of cache) {
+        if (val.fetchedAt < oldestTime) {
+          oldestTime = val.fetchedAt;
+          oldest = key;
+        }
+      }
+      if (oldest) cache.delete(oldest);
+    }
     return parsed;
-  } catch {
+  } catch (err) {
     clearTimeout(timeout);
+    debug("rss", `Failed to fetch feed: ${url}`, err);
     return null;
   }
 }

@@ -14,7 +14,7 @@ export class DuckDuckGoEngine implements SearchEngine {
     const offset = ((page || 1) - 1) * 30;
     const params = new URLSearchParams({ q: query });
     if (offset > 0) {
-      params.set("q", String(offset));
+      params.set("s", String(offset));
       params.set("dc", String(offset + 1));
     }
     if (timeFilter && timeFilter !== "any") {

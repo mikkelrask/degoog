@@ -102,6 +102,7 @@ export interface CommandResult {
   title: string;
   html: string;
   totalPages?: number;
+  action?: string;
 }
 
 export interface BangCommand {

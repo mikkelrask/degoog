@@ -8,6 +8,7 @@ import { meilisearchCommand, MEILISEARCH_ID } from "./builtins/meilisearch";
 import { AI_SUMMARY_ID, aiSummarySettingsSchema } from "./builtins/ai-summary";
 import { getEngineMap as getSearchEngineMap } from "../engines/registry";
 import { getSettings, maskSecrets } from "../plugin-settings";
+import { debug } from "../logger";
 
 interface CommandEntry {
   id: string;
@@ -74,7 +75,8 @@ export async function initPlugins(): Promise<void> {
     if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
       userAliases = parsed as Record<string, string>;
     }
-  } catch {
+  } catch (err) {
+    debug("commands", "Failed to load user aliases", err);
     userAliases = {};
   }
 
@@ -105,10 +107,12 @@ export async function initPlugins(): Promise<void> {
           displayName: instance.name,
           instance,
         });
-      } catch {
+      } catch (err) {
+        debug("commands", `Failed to load plugin command: ${file}`, err);
       }
     }
-  } catch {
+  } catch (err) {
+    debug("commands", `Failed to read command plugin directory`, err);
   }
 }
 

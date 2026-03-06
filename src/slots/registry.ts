@@ -1,5 +1,6 @@
 import type { SlotPlugin, SlotPanelPosition } from "../types";
 import { getSettings } from "../plugin-settings";
+import { debug } from "../logger";
 
 let slotPlugins: SlotPlugin[] = [];
 
@@ -44,12 +45,18 @@ export async function initSlotPlugins(): Promise<void> {
           try {
             const stored = await getSettings(`slot-${slot.id}`);
             if (Object.keys(stored).length > 0) slot.configure(stored);
-          } catch {}
+          } catch (err) {
+            debug("slots", `Failed to configure slot plugin: ${slot.id}`, err);
+          }
         }
         slotPlugins.push(slot);
-      } catch {}
+      } catch (err) {
+        debug("slots", `Failed to load slot plugin: ${file}`, err);
+      }
     }
-  } catch {}
+  } catch (err) {
+    debug("slots", `Failed to read slot plugin directory`, err);
+  }
 }
 
 export function getSlotPlugins(): SlotPlugin[] {

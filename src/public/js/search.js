@@ -129,7 +129,7 @@ async function performBangCommand(query, type, page = 1) {
     const res = await fetch(`/api/command?${apiParams.toString()}`);
     if (!res.ok) throw new Error("not found");
     const data = await res.json();
-    if (data.html === "__DETECT_CLIENT_IP__") {
+    if (data.action === "detect_client_ip") {
       try {
         const ipRes = await fetch("https://api.ipify.org?format=json");
         const ipData = await ipRes.json();
@@ -140,7 +140,7 @@ async function performBangCommand(query, type, page = 1) {
         return;
       }
     }
-    if (data.html === "__RUN_SPEEDTEST__") {
+    if (data.action === "run_speedtest") {
       document.getElementById("results-meta").textContent = "Speed Test";
       document.getElementById("results-list").innerHTML = renderSpeedtest();
       runSpeedtest();

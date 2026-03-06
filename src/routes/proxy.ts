@@ -1,0 +1,85 @@
+import { Hono } from "hono";
+import { getSettings } from "../plugin-settings";
+
+const router = new Hono();
+
+const PROXY_TIMEOUT_MS = 10_000;
+const MAX_CONTENT_LENGTH = 10 * 1024 * 1024;
+const ALLOWED_CONTENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "image/avif",
+  "image/x-icon",
+];
+
+router.get("/api/proxy/image", async (c) => {
+  const url = c.req.query("url");
+  if (!url) return c.body("Missing url parameter", 400);
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return c.body("Invalid URL", 400);
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return c.body("Invalid protocol", 400);
+  }
+
+  const authId = c.req.query("auth_id");
+  const headers: Record<string, string> = {
+    "User-Agent": "degoog/1.0",
+    Accept: "image/*",
+  };
+
+  if (authId) {
+    const stored = await getSettings(authId);
+    if (stored["apiKey"]) {
+      headers["X-Emby-Token"] = stored["apiKey"];
+    }
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers,
+      redirect: "follow",
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return c.body("Upstream error", 502);
+
+    const contentType = res.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
+    if (!ALLOWED_CONTENT_TYPES.some((t) => contentType.startsWith(t))) {
+      return c.body("Not an image", 400);
+    }
+
+    const contentLength = Number(res.headers.get("content-length") || 0);
+    if (contentLength > MAX_CONTENT_LENGTH) {
+      return c.body("Image too large", 413);
+    }
+
+    const body = await res.arrayBuffer();
+    if (body.byteLength > MAX_CONTENT_LENGTH) {
+      return c.body("Image too large", 413);
+    }
+
+    return c.body(body, 200, {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=86400",
+      "X-Content-Type-Options": "nosniff",
+    });
+  } catch {
+    clearTimeout(timeout);
+    return c.body("Proxy failed", 502);
+  }
+});
+
+export default router;

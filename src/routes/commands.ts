@@ -49,6 +49,7 @@ router.get("/api/command", async (c) => {
     trigger: match.command.trigger,
     title: result.title,
     html: result.html,
+    action: result.action,
     page,
     totalPages: result.totalPages ?? 1,
   });

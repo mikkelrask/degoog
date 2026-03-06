@@ -2,7 +2,8 @@ import { Hono } from "hono";
 
 const router = new Hono();
 
-const validTokens = new Set<string>();
+const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const validTokens = new Map<string, number>();
 
 function getPasswords(): string[] {
   const raw = process.env.DEGOOG_SETTINGS_PASSWORDS ?? "";
@@ -19,9 +20,22 @@ function generateToken(): string {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function pruneExpired(): void {
+  const now = Date.now();
+  for (const [token, expiresAt] of validTokens) {
+    if (now > expiresAt) validTokens.delete(token);
+  }
+}
+
 export function validateSettingsToken(token: string | undefined): boolean {
   if (!isRequired()) return true;
-  return !!token && validTokens.has(token);
+  if (!token) return false;
+  const expiresAt = validTokens.get(token);
+  if (!expiresAt || Date.now() > expiresAt) {
+    if (expiresAt) validTokens.delete(token);
+    return false;
+  }
+  return true;
 }
 
 router.get("/api/settings/auth", (c) => {
@@ -42,8 +56,9 @@ router.post("/api/settings/auth", async (c) => {
     return c.json({ ok: false }, 401);
   }
 
+  pruneExpired();
   const token = generateToken();
-  validTokens.add(token);
+  validTokens.set(token, Date.now() + TOKEN_TTL_MS);
   return c.json({ ok: true, token });
 });
 

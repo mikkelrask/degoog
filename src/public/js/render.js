@@ -1,7 +1,7 @@
 import { state } from "./state.js";
 import { MAX_PAGE } from "./constants.js";
 import { escapeHtml, cleanUrl, cleanHostname } from "./utils.js";
-import { faviconUrl } from "./url.js";
+import { faviconUrl, proxyImageUrl } from "./url.js";
 import {
   setupMediaObserver,
   destroyMediaObserver,
@@ -83,7 +83,7 @@ export function appendMediaCards(grid, results, type) {
     if (type === "image") {
       card.innerHTML = `
         <div class="image-thumb-wrap">
-          <img class="image-thumb" src="${escapeHtml(r.thumbnail || "")}" alt="${escapeHtml(r.title)}" loading="lazy" onerror="this.parentElement.parentElement.style.display='none'">
+          <img class="image-thumb" src="${escapeHtml(proxyImageUrl(r.thumbnail || ""))}" alt="${escapeHtml(r.title)}" loading="lazy" onerror="this.parentElement.parentElement.style.display='none'">
         </div>
         <div class="image-info">
           <span class="image-title">${escapeHtml(r.title)}</span>
@@ -92,7 +92,7 @@ export function appendMediaCards(grid, results, type) {
     } else {
       card.innerHTML = `
         <div class="video-thumb-wrap">
-          <img class="video-thumb" src="${escapeHtml(r.thumbnail || "")}" alt="${escapeHtml(r.title)}" loading="lazy" onerror="this.style.display='none'">
+          <img class="video-thumb" src="${escapeHtml(proxyImageUrl(r.thumbnail || ""))}" alt="${escapeHtml(r.title)}" loading="lazy" onerror="this.style.display='none'">
           ${r.duration ? `<span class="video-duration">${escapeHtml(r.duration)}</span>` : ""}
           <div class="video-play-icon">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -171,7 +171,7 @@ export function renderResults(results) {
       (r) => {
         const thumbBlock =
           r.thumbnail &&
-          `<div class="result-thumbnail-wrap"><img class="result-thumbnail-img" src="${escapeHtml(r.thumbnail)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`;
+          `<div class="result-thumbnail-wrap"><img class="result-thumbnail-img" src="${escapeHtml(proxyImageUrl(r.thumbnail))}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`;
         const body = `
       <div class="result-url-row">
         <img class="result-favicon" src="${faviconUrl(r.url)}" alt="" width="26" height="26" onerror="this.style.display='none'">
@@ -212,7 +212,7 @@ export function renderSidebar(data, onRelatedSearch) {
     const kp = data.knowledgePanel;
     let kpContent = "";
     if (kp.image) {
-      kpContent += `<img class="kp-image" src="${escapeHtml(kp.image)}" alt="${escapeHtml(kp.title)}">`;
+      kpContent += `<img class="kp-image" src="${escapeHtml(proxyImageUrl(kp.image))}" alt="${escapeHtml(kp.title)}">`;
     }
     kpContent += `<h3 class="kp-title">${escapeHtml(kp.title)}</h3>`;
     kpContent += `<p class="kp-description">${escapeHtml(kp.description)}</p>`;
