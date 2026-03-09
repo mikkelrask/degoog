@@ -1,6 +1,5 @@
 import { idbGet } from "../utils/db";
 import { THEME_KEY } from "../constants";
-import { debug } from "../../logger";
 
 const _resolveTheme = (preference: string): string | null => {
   if (preference === "light" || preference === "dark") return preference;
@@ -29,9 +28,7 @@ export async function initTheme(): Promise<void> {
   if (saved) {
     try {
       localStorage.setItem(THEME_KEY, saved);
-    } catch {
-      debug("theme", "Failed to set theme in localStorage");
-    }
+    } catch {}
     applyTheme(saved);
   }
 }

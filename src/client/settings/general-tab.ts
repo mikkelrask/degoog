@@ -3,7 +3,6 @@ import { THEME_KEY } from "../constants";
 import { applyTheme } from "../modules/theme";
 import { requestInstallPrompt } from "../modules/installPrompt";
 import { authHeaders, jsonHeaders } from "../utils/request";
-import { debug } from "../../logger";
 
 export async function initGeneralTab(
   getToken: () => string | null,
@@ -37,9 +36,7 @@ export async function initGeneralTab(
         proxyUrls.value = data.proxyUrls ?? "";
         proxyUrlsWrap.style.display = proxyEnabled.checked ? "block" : "none";
       }
-    } catch (error) {
-      debug("general", "Failed to fetch proxy settings", error);
-    }
+    } catch {}
     proxyEnabled.addEventListener("change", () => {
       proxyUrlsWrap.style.display = proxyEnabled?.checked ? "block" : "none";
     });
@@ -53,9 +50,7 @@ export async function initGeneralTab(
         await idbSet(THEME_KEY, value);
         try {
           localStorage.setItem(THEME_KEY, value);
-        } catch (error) {
-          debug("general", "Failed to set theme in localStorage", error);
-        }
+        } catch {}
         applyTheme(value);
       }
       if (proxyEnabled && proxyUrls) {
@@ -68,9 +63,7 @@ export async function initGeneralTab(
               proxyUrls: proxyUrls.value.trim(),
             }),
           });
-        } catch (error) {
-          debug("general", "Failed to save proxy settings", error);
-        }
+        } catch {}
       }
       const btn = document.getElementById("settings-save");
       if (btn) {
