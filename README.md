@@ -54,4 +54,8 @@ Official fccview store: `https://github.com/fccview/fccview-degoog-extensions`
 
 ## Documentation
 
-Full customisation guide (plugins, themes, engines, store, settings gate, aliases, env): **[https://fccview.github.io/degoog](documentation)**. 
+Full customisation guide (plugins, themes, engines, store, settings gate, aliases, env): **[https://fccview.github.io/degoog](documentation)**.
+
+## Little shoutout
+
+This project would have never existed if the amazing [searxng](https://github.com/searxng/searxng) developers hadn't had the idea first. This is my take on a heavily customisable search aggregrator, it's meant to be a more modular lighter alternative, you can add as much as you want to it, but the core will stay as simple as it gets.
