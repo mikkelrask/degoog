@@ -10,7 +10,7 @@
   <div class="wrap">
     <header>
       <h1><a href="index.html">Degoog</a> — Plugins</h1>
-      <p>Bang commands, slots, search bar actions, routes, and middleware.</p>
+      <p>Bang commands, slots, search result tabs, search bar actions, routes, and middleware.</p>
     </header>
 
     <nav class="doc-nav">
@@ -120,6 +120,40 @@ export default {
 
       <p><strong>Example from the official store:</strong> <a href="https://github.com/fccview/fccview-degoog-extensions/tree/main/plugins/tmdb-slot" class="external" target="_blank" rel="noopener">TMDb (imdb-slot)</a> — slot plugin that shows movie/TV details above search results.</p>
       <p><strong>Slot API:</strong> <code>GET /api/slots?q=&lt;query&gt;</code> returns panels for above-results, below-results, and sidebar (at-a-glance slots are excluded so the search response is fast). <code>POST /api/slots/glance</code> with body <code>{ query, results }</code> returns only at-a-glance panels; the client calls this after the search response to fill the glance without blocking results.</p>
+
+      <h2 id="search-result-tabs">Search result tabs</h2>
+      <p>Search result tabs add entries to the tab bar on the search results page (e.g. “Web”, “Images”, “Videos”). Export <code>tab</code> or <code>searchResultTab</code> (or <code>default.tab</code>) from a plugin folder. Same folder structure as other plugins: <code>index.js</code>/<code>index.ts</code>/<code>index.mjs</code>/<code>index.cjs</code>, optional <code>template.html</code>, <code>style.css</code>, <code>script.js</code>.</p>
+      <p><strong>Required:</strong> <strong>id</strong> (string), <strong>name</strong> (string). You must provide <strong>either</strong> <strong>engineType</strong> (string) or <strong>executeSearch(query, page?, context?)</strong> (async).</p>
+      <ul>
+        <li><strong>engineType</strong> — An existing type (<code>web</code>, <code>images</code>, <code>videos</code>, <code>news</code>, or a custom type from <a href="engines.html">engines</a>). The tab runs the same engines as that type and shows their results.</li>
+        <li><strong>executeSearch</strong> — Return <code>Promise&lt;{ results: SearchResult[]; totalPages?: number }&gt;</code>. <code>SearchResult</code> shape: <code>{ title, url, snippet, source, thumbnail?, duration? }</code>. <code>context</code> has <code>clientIp?</code>.</li>
+      </ul>
+      <p>Optional: <strong>icon</strong>, <strong>settingsId</strong> (default <code>tab-&lt;id&gt;</code>), <strong>settingsSchema</strong>, <strong>configure(settings)</strong>, <strong>init(ctx)</strong>. If the user disables the plugin in Settings → Plugins (<code>disabled: "true"</code> under <code>settingsId</code>), the tab is hidden.</p>
+      <p><strong>Engine-type tab:</strong></p>
+      <pre><code>export const tab = {
+  id: "my-web",
+  name: "My Web",
+  engineType: "web",
+};</code></pre>
+      <p><strong>Custom search tab:</strong></p>
+      <pre><code>export const tab = {
+  id: "docs",
+  name: "Docs",
+  async executeSearch(query, page = 1) {
+    const res = await fetch(`https://docs.example.com/api/search?q=${encodeURIComponent(query)}&page=${page}`);
+    const data = await res.json();
+    return {
+      results: data.items.map((item) =&gt; ({
+        title: item.title,
+        url: item.url,
+        snippet: item.excerpt || "",
+        source: "Docs",
+      })),
+      totalPages: data.totalPages || 1,
+    };
+  },
+};</code></pre>
+      <p><strong>API:</strong> <code>GET /api/search-tabs</code> returns the tab list; <code>GET /api/tab-search?tab=&lt;id&gt;&amp;q=&lt;query&gt;&amp;page=&lt;n&gt;</code> runs the tab’s search and returns <code>{ results, totalPages, page }</code>. Engine-type tabs use id <code>engine:&lt;type&gt;</code> unless a plugin registers that <code>engineType</code>, in which case the plugin’s <code>id</code> is used.</p>
 
       <h2>Search bar actions</h2>
       <p>Plugins can add buttons or links next to the search bar (home and results). Export <code>searchBarActions</code> — an array of objects with this shape:</p>
