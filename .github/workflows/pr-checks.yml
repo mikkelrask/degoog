@@ -47,4 +47,7 @@ jobs:
         run: bun run typecheck
 
       - name: Run tests
-        run: bun run test
+        run: LOGGER= bun test $(find tests -name '*.test.ts' ! -path '*/stress/*' | sort | tr '\\n' ' ')
+
+      - name: Run stress tests
+        run: LOGGER=debug bun test tests/stress
