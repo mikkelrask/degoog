@@ -26,6 +26,7 @@ export interface StoreItem {
   screenshots: string[];
   installed: boolean;
   installedVersion?: string;
+  updateAvailable?: boolean;
   pluginType?: string;
   engineType?: string;
 }

@@ -188,56 +188,10 @@ export async function removeRepo(url: string): Promise<void> {
   await writeReposData(data);
 }
 
-async function updateInstalledFromRepo(
-  data: ReposData,
-  repo: RepoInfo,
-): Promise<Set<"plugin" | "theme" | "engine">> {
-  const storeDir = getStoreDir();
-  const repoNorm = normalizeRepoUrl(repo.url);
-  const installed = data.installed.filter(
-    (i) => normalizeRepoUrl(i.repoUrl) === repoNorm,
-  );
-  const typesUpdated = new Set<"plugin" | "theme" | "engine">();
-  const pkgPath = join(storeDir, repo.localPath, "package.json");
-  let pkg: RepoPackageJson;
-  try {
-    const raw = await readFile(pkgPath, "utf-8");
-    pkg = JSON.parse(raw) as RepoPackageJson;
-  } catch {
-    return typesUpdated;
-  }
-
-  for (const inst of installed) {
-    const srcDir = join(storeDir, repo.localPath, inst.itemPath);
-    try {
-      await stat(srcDir);
-    } catch {
-      continue;
-    }
-    const destBase = getDestDir(inst.type);
-    const destDir = join(destBase, inst.installedAs);
-    await rm(destDir, { recursive: true, force: true }).catch(() => {});
-    await copyItemDir(srcDir, destDir, STORE_METADATA);
-    const entries =
-      inst.type === "plugin"
-        ? pkg.plugins
-        : inst.type === "theme"
-          ? pkg.themes
-          : pkg.engines;
-    const manifest = entries?.find(
-      (e) => e.path.replace(/\/$/, "") === inst.itemPath,
-    );
-    if (manifest?.version) inst.version = manifest.version;
-    typesUpdated.add(inst.type);
-  }
-  return typesUpdated;
-}
-
 export async function refreshRepo(url?: string): Promise<void> {
   const data = await readReposData();
   const repos = url ? [getRepoByUrl(data, url)] : data.repos;
   const toRefresh = repos.filter((r): r is RepoInfo => r != null);
-  const allTypesUpdated = new Set<"plugin" | "theme" | "engine">();
   for (const repo of toRefresh) {
     const repoPath = join(getStoreDir(), repo.localPath);
     try {
@@ -259,17 +213,11 @@ export async function refreshRepo(url?: string): Promise<void> {
       repo.name = pkg.name ?? repo.name;
       repo.description = pkg.description ?? repo.description;
       repo.repoImage = pkg["repo-image"] ?? null;
-
-      const updated = await updateInstalledFromRepo(data, repo);
-      for (const t of updated) allTypesUpdated.add(t);
     } catch (e) {
       repo.error = e instanceof Error ? e.message : String(e);
     }
   }
   await writeReposData(data);
-  for (const type of allTypesUpdated) {
-    await reloadAfterAction(type);
-  }
 }
 
 export async function refreshAllRepos(): Promise<
@@ -379,6 +327,8 @@ export async function listRepoItems(repoUrl?: string): Promise<StoreItem[]> {
         const key = `${normalizeRepoUrl(repo.url)}::${type}::${itemPath}`;
         const inst = installedMap.get(key);
         const folderName = itemPath.split("/").pop() ?? itemPath;
+        const isInstalled = installedSet.has(key);
+        const repoVersion = ent.version ?? "0.0.0";
         const item: StoreItem = {
           repoUrl: repo.url,
           repoSlug: repo.localPath,
@@ -387,13 +337,17 @@ export async function listRepoItems(repoUrl?: string): Promise<StoreItem[]> {
           path: itemPath,
           name: ent.name || folderName,
           description: ent.description ?? "",
-          version: ent.version ?? "0.0.0",
+          version: repoVersion,
           author: author
             ? { name: author.name, url: author.url, avatar: author.avatar }
             : topAuthor,
           screenshots,
-          installed: installedSet.has(key),
+          installed: isInstalled,
           installedVersion: inst?.version,
+          updateAvailable:
+            isInstalled &&
+            !!inst?.version &&
+            inst.version !== repoVersion,
         };
         if (type === "plugin" && ent.type) item.pluginType = ent.type;
         if (type === "engine") {
@@ -629,6 +583,61 @@ async function reloadAfterAction(
   } else {
     await reloadEngines();
   }
+}
+
+export async function updateItem(
+  repoUrl: string,
+  itemPath: string,
+  type: "plugin" | "theme" | "engine",
+): Promise<void> {
+  const data = await readReposData();
+  const repo = getRepoByUrl(data, repoUrl);
+  if (!repo) throw new Error("Repository not found.");
+  const normalizedPath = itemPath.replace(/\/$/, "");
+  const inst = data.installed.find(
+    (i) =>
+      normalizeRepoUrl(i.repoUrl) === normalizeRepoUrl(repoUrl) &&
+      i.type === type &&
+      i.itemPath === normalizedPath,
+  );
+  if (!inst) throw new Error("Item is not installed.");
+
+  const storeDir = getStoreDir();
+  const srcDir = join(storeDir, repo.localPath, normalizedPath);
+  try {
+    await stat(srcDir);
+  } catch {
+    throw new Error("Item path not found in repository.");
+  }
+
+  const pkgPath = join(storeDir, repo.localPath, "package.json");
+  const pkg = JSON.parse(await readFile(pkgPath, "utf-8")) as RepoPackageJson;
+  const entries =
+    type === "plugin"
+      ? pkg.plugins
+      : type === "theme"
+        ? pkg.themes
+        : pkg.engines;
+  const manifest = entries?.find(
+    (e) => e.path.replace(/\/$/, "") === normalizedPath,
+  );
+
+  const destBase = getDestDir(type);
+  const destDir = join(destBase, inst.installedAs);
+  await rm(destDir, { recursive: true, force: true }).catch(() => {});
+  await copyItemDir(srcDir, destDir, STORE_METADATA);
+  if (manifest?.version) inst.version = manifest.version;
+  await writeReposData(data);
+  await reloadAfterAction(type);
+}
+
+export async function updateAllItems(): Promise<{ updated: number }> {
+  const items = await listRepoItems();
+  const updatable = items.filter((i) => i.updateAvailable);
+  for (const item of updatable) {
+    await updateItem(item.repoUrl, item.path, item.type);
+  }
+  return { updated: updatable.length };
 }
 
 export async function getInstalledItems(): Promise<InstalledItem[]> {

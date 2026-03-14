@@ -13,6 +13,8 @@ import {
   listRepoItems,
   installItem,
   uninstallItem,
+  updateItem,
+  updateAllItems,
   getInstalledItems,
   getStoreDirPath,
   resolveScreenshotPath,
@@ -186,6 +188,42 @@ router.post("/api/store/uninstall", async (c) => {
     return c.json({ ok: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Uninstall failed";
+    return c.json({ error: message }, 400);
+  }
+});
+
+router.post("/api/store/update", async (c) => {
+  if (!(await validateSettingsToken(getStoreToken(c))))
+    return c.json({ error: "Unauthorized" }, 401);
+  const body = await c.req.json<{
+    repoUrl?: string;
+    itemPath?: string;
+    type?: string;
+  }>();
+  const { repoUrl, itemPath, type } = body ?? {};
+  if (!repoUrl?.trim() || !itemPath?.trim() || !type) {
+    return c.json({ error: "Missing repoUrl, itemPath, or type" }, 400);
+  }
+  if (!isValidType(type)) {
+    return c.json({ error: "Invalid type" }, 400);
+  }
+  try {
+    await updateItem(repoUrl.trim(), itemPath.trim(), type);
+    return c.json({ ok: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Update failed";
+    return c.json({ error: message }, 400);
+  }
+});
+
+router.post("/api/store/update-all", async (c) => {
+  if (!(await validateSettingsToken(getStoreToken(c))))
+    return c.json({ error: "Unauthorized" }, 401);
+  try {
+    const result = await updateAllItems();
+    return c.json({ ok: true, ...result });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Update failed";
     return c.json({ error: message }, 400);
   }
 });
