@@ -2,7 +2,7 @@ import { initTheme } from "../../utils/theme";
 import { initInstallPrompt } from "../../utils/install-prompt";
 import {
   initGeneralTab,
-  initThemeSelectOnly,
+  initAppearanceSettings,
 } from "../../settings/general-tab";
 import { initEnginesTab } from "../../settings/engines-tab";
 import { initPluginsTab } from "../../settings/plugins-tab";
@@ -184,7 +184,7 @@ window.addEventListener("extensions-saved", async () => {
 
 async function _initPublicSettings(): Promise<void> {
   void initTheme();
-  void initThemeSelectOnly();
+  void initAppearanceSettings();
   try {
     const res = await fetch("/api/extensions");
     const allExtensions = (await res.json()) as AllExtensions;
